@@ -1,0 +1,24 @@
+---
+- name: yum - install epel-release
+  yum:
+    name: epel-release
+    state: present
+
+- name: yum - update os to latest patch level
+  yum:
+    name: "*"
+    state: latest
+
+- name: facts - deploy local facts for management
+  template:
+    src: templates/managed.fact.j2
+    dest: /etc/ansible/facts.d/managed.fact
+    mode: 0644
+    owner: root
+    group: root
+    force: yes
+
+- name: selinux - set selinux to enforcing
+  selinux:
+    policy: targeted
+    state: enforcing

@@ -1,0 +1,57 @@
+---
+- hosts: centos
+  become: true
+  
+  tasks:
+    - name: create local fact directory
+      file:
+        path: /etc/ansible/facts.d
+        state: directory
+      register: factdir
+
+    - name: check local fact file
+      stat:
+        path: /etc/ansible/facts.d/managed.fact
+      register: factfile
+
+    - name: create local fact file
+      file:
+        path: /etc/ansible/facts.d/managed.fact
+        state: touch
+      when: factdir.changed or factfile.stat.exists == False
+ 
+- hosts: centos
+  become: true
+   
+  tasks:
+    - include: manage.yml
+      when: ansible_local.managed.ansible is not defined
+
+- hosts: centos
+  become: true
+  
+  tasks:
+    - include: proxy.yml
+      when: ansible_fqdn == "proxy.brakkedoos.nl" and ansible_local.managed.ansible.managed == "true"
+    
+    - include: database.yml
+      when: ansible_fqdn == "database.brakkedoos.nl" and ansible_local.managed.ansible.managed == "true"
+    
+    - include: web.yml
+      when: ansible_fqdn == "web.brakkedoos.nl" and ansible_local.managed.ansible.managed == "true"
+   
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+    
+    - name: restart firewalld
+      service:
+        name: firewalld
+        state: restarted
+
+    - name: restart httpd
+      service:
+        name: httpd
+        state: restarted

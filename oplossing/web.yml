@@ -1,0 +1,70 @@
+---
+- name: yum - installing apache2
+  yum:
+    name: httpd
+    state: present
+
+- name: apache2 - starting and enableing apache2
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: wordpress - download wordpress 4.8
+  get_url:
+    url: https://nl.wordpress.org/wordpress-4.8-nl_NL.tar.gz
+    dest: /home/vagrant/wordpress.tar.gz
+    mode: 0644
+  register: wordpress
+
+- name: wordpress - installing requirements
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - php
+    - php-mysql
+    - php-gd
+  notify: restart httpd
+
+- name: wordpress - remove old content
+  file:
+    path: /var/www/html
+    state: absent
+  when: wordpress.changed
+
+- name: wordpress - deploy fresh wordpress
+  unarchive:
+    src: /home/vagrant/wordpress.tar.gz
+    dest: /var/www
+    remote_src: true
+
+- name: wordpress - create symlink
+  file:
+    src: /var/www/wordpress
+    dest: /var/www/html
+    state: link
+
+- name: wordpress - create configuration file
+  copy:
+    src: /var/www/html/wp-config-sample.php
+    dest: /var/www/html/wp-config.php
+    remote_src: true
+
+- name: wordpress - insert user information into configuration file
+  replace:
+    dest: /var/www/html/wp-config.php
+    regexp: "{{ item }}"
+    replace: wordpress
+    backup: yes
+  with_items:
+    - 'database_name_here'
+    - 'username_here'
+    - 'password_here'
+
+- name: wordpress - insert database information into configuration file
+  replace:
+    dest: /var/www/html/wp-config.php
+    regexp: 'localhost'
+    replace: '172.16.20.153'
+    backup: yes

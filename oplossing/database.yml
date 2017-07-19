@@ -1,0 +1,42 @@
+---
+- name: yum - install mariadb
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - mariadb
+    - mariadb-server
+    - MySQL-python
+
+- name: mariadb - starting and enableing mariadb
+  service:
+    name: mariadb
+    state: started
+
+- name: mariadb - create database wordpress
+  mysql_db:
+    name: wordpress
+    state: present
+
+- name: mariadb - create user wordpress
+  mysql_user:
+    name: wordpress
+    password: wordpress
+    host: '%'
+    priv: wordpress.*:ALL
+
+- name: firewalld - enable and starting firewalld
+  service:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: firewalld - open port for ssh and mysql
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+  with_items:
+    - ssh
+    - mysql
+  notify: restart firewalld
